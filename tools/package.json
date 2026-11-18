@@ -1,0 +1,8 @@
+{
+  "name": "pokjjak-admin-tools",
+  "private": true,
+  "description": "폴짝폴짝 길건너기 관리 도구 (비밀번호 다시 정하기)",
+  "dependencies": {
+    "firebase-admin": "12.7.0"
+  }
+}

@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 플레이어 한 명의 기록: 로그인한 본인만 읽고 쓸 수 있어요.
+    match /players/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && validPlayer(request.resource.data);
+      allow delete: if false;
+    }
+
+    function validPlayer(d) {
+      return d.keys().hasOnly(['nickname', 'save', 'updatedAt'])
+        && d.nickname is string && d.nickname.size() >= 2 && d.nickname.size() <= 10
+        && d.updatedAt == request.time
+        && validSave(d.save);
+    }
+
+    // 게임 기록의 모양과 범위를 확인해요. (값을 억지로 바꾸는 것을 완전히 막지는 못해요.)
+    function validSave(s) {
+      return s is map
+        && s.keys().hasOnly(['coins', 'owned', 'selected', 'best', 'nextGiftAt', 'muted', 'pets', 'pet', 'savedAt'])
+        && s.coins is int && s.coins >= 0 && s.coins <= 100000000
+        && s.best is int && s.best >= 0 && s.best <= 1000000
+        && s.owned is list && s.owned.size() <= 40
+        && s.selected is string && s.selected.size() <= 20
+        && s.nextGiftAt is int
+        && s.muted is bool
+        && s.pets is list && s.pets.size() <= 10
+        && (s.pet == null || s.pet is string)
+        && s.savedAt is int;
+    }
+
+    // 그 밖의 데이터는 아무도 읽고 쓸 수 없어요.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

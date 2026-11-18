@@ -8,7 +8,7 @@
 |---|---|
 | `public/index.html` | 게임 전체 (CSS + 마크업 + JS 한 파일, 약 3,900줄) |
 | `public/firebase-config.js` | Firebase 웹 설정 (`pokjjak-game`). 공개돼도 되는 값 |
-| `firestore.rules` | `players/{uid}` 본인만 읽기/쓰기, save 필드 모양·범위 검사. `ranks/{uid}`(랭킹판)는 로그인하면 누구나 읽기, 본인만 쓰기 |
+| `firestore.rules` | `players/{uid}` 본인만 읽기/쓰기, save 필드 모양·범위 검사. `ranks/{uid}`(랭킹판)는 로그인하면 누구나 읽기, 본인만 쓰기. `matches/{mid}`와 `matches/{mid}/players/{uid}`(랭킹전 방) |
 | `tools/reset-pin.js` | 관리자용 비밀번호 재설정 (`tools/service-account.json` 필요, 절대 커밋 금지) |
 | `firebase.json`, `.firebaserc` | Firebase CLI 설정. `.firebaserc` 기본 프로젝트는 `pokjjak-game` |
 
@@ -22,7 +22,9 @@
 - **voxel geometry** (~1253): `mergeBoxes(parts)` — part는 `[w,h,d,x,yBottom,z,color,rot?]`. `CHAR_PARTS`, `PET_PARTS`, 차량·지형 parts, `buildGeometries`.
 - **world: lanes** (~2077): 레인 타입 grass/road/river/ice/lily/rail/siren. `STAGE` 표로 단계별 난이도, `planGroup`이 레인 묶음 생성, `updateLane`.
 - **player** (~2471): `tryMove` → `planMove` → `land`, `checkHazards` → `hit` → `die`. 펫 능력(`usePet`), 봉황 부활 등.
-- **랭킹**: `ranks/{uid}` = `{nickname, best, selected, updatedAt}`. `cloud.flush`가 best·닉네임·친구가 바뀔 때만 `players`와 같은 batch로 쓴다(규칙이 `getAfter`로 players와 값이 같은지 검사). 규칙이 거부하면 players만 저장. `openRanks`가 상위 50명을 보여 준다.
+- **랭킹**: `ranks/{uid}` = `{nickname, best, selected, updatedAt}`. `cloud.flush`가 best·닉네임·친구가 바뀔 때만 `players`와 같은 batch로 쓴다(규칙이 `getAfter`로 players와 값이 같은지 검사). 규칙이 거부하면 players만 저장. `openRanks`가 상위 50명을 최고 기록/티어(rp) 탭으로 보여 준다.
+- **랭킹전·티어** (`tiers and ranked match` 섹션): 최대 5명, Firestore만 사용(서버 없음). `findRoom`이 `openUntil > now`인 방에 트랜잭션으로 들어가거나 새로 만든다. 25초 대기 후 아무 클라이언트나 `status: playing`과 `roster`를 정하고, 각자 3초 카운트다운 뒤 2분 동안 같은 `seed`의 맵에서 달린다. 점수는 3초마다, 하트비트는 4~8초마다 자기 player 문서에 쓴다. 하트비트가 끊긴 사람은 나간 것으로 본다(서버 시각 기준 = 방에서 가장 최근 `seen`). 순위는 점수, 같으면 먼저 도달한 사람(`scoreAt`). 포인트 50/40/30/20/10을 `save.rp`에 더하고 `save.lastMatch`로 중복을 막는다. 티어는 `TIERS`(브론즈~챌린저 9단계 × 5~1), `TIER_STEP=100`점마다 한 칸, 내려가지 않는다.
+- **시드 맵**: 맵 생성(`weightedPick`~`createLane`)은 `wr()`/`wrand`/`wpick`/`wshuffle`만 쓴다. `matchSeed`가 있으면 `resetWorld`가 그 시드로 고정하고, 펫 상자는 나오지 않는다. 맵 생성에 `Math.random`을 새로 쓰면 랭킹전 맵이 사람마다 달라진다.
 - **game flow / sign-in / UI / boot** (~3246 이후): 화면 전환(`setScreen`), 로그인, 친구·펫 모달, 뽑기, 선물 상자, 입력 처리, `start()`.
 
 ## 수정 시 주의

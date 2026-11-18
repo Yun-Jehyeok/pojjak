@@ -21,10 +21,11 @@ service cloud.firestore {
     }
 
     function validRank(d, p) {
-      return d.keys().hasOnly(['nickname', 'best', 'selected', 'updatedAt'])
+      return d.keys().hasOnly(['nickname', 'best', 'selected', 'rp', 'updatedAt'])
         && d.nickname == p.nickname
         && d.best == p.save.best
         && d.selected == p.save.selected
+        && d.get('rp', 0) == p.save.get('rp', 0)
         && d.updatedAt == request.time;
     }
 
@@ -38,7 +39,7 @@ service cloud.firestore {
     // 게임 기록의 모양과 범위를 확인해요. (값을 억지로 바꾸는 것을 완전히 막지는 못해요.)
     function validSave(s) {
       return s is map
-        && s.keys().hasOnly(['coins', 'owned', 'selected', 'best', 'nextGiftAt', 'muted', 'pets', 'pet', 'savedAt'])
+        && s.keys().hasOnly(['coins', 'owned', 'selected', 'best', 'nextGiftAt', 'muted', 'pets', 'pet', 'savedAt', 'rp', 'lastMatch'])
         && s.coins is int && s.coins >= 0 && s.coins <= 100000000
         && s.best is int && s.best >= 0 && s.best <= 1000000
         && s.owned is list && s.owned.size() <= 40
@@ -47,7 +48,50 @@ service cloud.firestore {
         && s.muted is bool
         && s.pets is list && s.pets.size() <= 10
         && (s.pet == null || s.pet is string)
-        && s.savedAt is int;
+        && s.savedAt is int
+        && (!('rp' in s) || (s.rp is int && s.rp >= 0 && s.rp <= 1000000))
+        && (!('lastMatch' in s) || (s.lastMatch is string && s.lastMatch.size() <= 40));
+    }
+
+    // 랭킹전 방: 로그인한 사람은 누구나 보고, 들어가고, 출발시킬 수 있어요.
+    match /matches/{mid} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && validRoom(request.resource.data)
+        && request.resource.data.keys().hasOnly(['status', 'n', 'seed', 'openUntil', 'host', 'roster', 'createdAt'])
+        && request.resource.data.status == 'waiting' && request.resource.data.n == 1
+        && request.resource.data.host == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if request.auth != null && validRoom(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'n', 'openUntil', 'roster', 'startedAt'])
+        && request.resource.data.seed == resource.data.seed
+        && (request.resource.data.status == resource.data.status
+            || (resource.data.status == 'waiting' && request.resource.data.status == 'playing'));
+      allow delete: if false;
+
+      // 방 안의 플레이어 한 명: 자기 것만 쓸 수 있어요.
+      match /players/{uid} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && validRacer(request.resource.data);
+        allow delete: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    function validRoom(r) {
+      return r.status in ['waiting', 'playing']
+        && r.n is int && r.n >= 0 && r.n <= 5
+        && r.seed is int && r.openUntil is int
+        && r.roster is list && r.roster.size() <= 5;
+    }
+
+    function validRacer(d) {
+      return d.keys().hasOnly(['nickname', 'selected', 'rp', 'score', 'scoreAt', 'done', 'seen'])
+        && d.nickname is string && d.nickname.size() <= 10
+        && d.selected is string && d.selected.size() <= 20
+        && d.rp is int && d.rp >= 0
+        && d.score is int && d.score >= 0 && d.score <= 1000000
+        && d.scoreAt is int && d.done is bool
+        && d.seen == request.time;
     }
 
     // 그 밖의 데이터는 아무도 읽고 쓸 수 없어요.

@@ -741,6 +741,44 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
 .rank-score { flex: none; font-family: var(--font-display); font-size: 22px; }
 .rank-score small { font-size: 15px; margin-left: 2px; }
 .rank-me { margin: 0; font-size: 16px; font-weight: 700; text-align: center; color: var(--ink-soft); }
+.rank-tabs { margin: 0; }
+.tier-badge {
+  flex: none; display: inline-block;
+  font-family: var(--font-display); font-size: 15px; line-height: 1;
+  padding: 5px 9px 4px; border: 2px solid var(--ink); border-radius: 999px;
+  background: var(--tier, #c98a5a); color: var(--ink); white-space: nowrap;
+}
+.tier-line {
+  margin: 0; display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  background: rgba(255, 255, 255, 0.94); border: 3px solid var(--ink); border-radius: 999px;
+  padding: 6px 16px 6px 8px; font-size: 16px; font-weight: 700;
+}
+.tier-line .tier-badge { font-size: 18px; }
+.btn.match-btn { background: var(--legend-deep); color: var(--paper); }
+.screen.match { justify-content: center; }
+.match-sheet { width: min(520px, 100%); max-height: 100%; overflow-y: auto; pointer-events: auto; }
+.match-sheet .rank-list { width: 100%; }
+.match-note { margin: 0; font-size: 17px; font-weight: 700; text-align: center; color: var(--ink-soft); text-wrap: balance; }
+.match-gain { margin: 0; font-family: var(--font-display); font-size: 24px; text-align: center; }
+.rank-row .rank-state { flex: none; font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.rank-row.gone { opacity: 0.55; }
+.match-mini {
+  margin-top: 6px; display: grid; gap: 2px; width: max-content; max-width: 46vw;
+  background: rgba(255, 255, 255, 0.92); border: 3px solid var(--ink); border-radius: 14px;
+  padding: 6px 10px; color: var(--ink); text-shadow: none;
+}
+.match-clock { font-size: 22px; line-height: 1.1; }
+.match-clock.low { color: var(--tomato); }
+.match-mini ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; font-family: var(--font-body); font-size: 14px; font-weight: 700; }
+.match-mini li { display: flex; gap: 6px; justify-content: space-between; white-space: nowrap; }
+.match-mini li span:first-child { overflow: hidden; text-overflow: ellipsis; max-width: 9em; }
+.match-mini li.me { color: var(--legend-deep); }
+.match-mini li.out { opacity: 0.55; }
+.countdown {
+  position: fixed; inset: 0; z-index: 6; display: grid; place-items: center; pointer-events: none;
+  font-family: var(--font-display); font-size: clamp(90px, 24vw, 170px); color: var(--sun);
+}
+.countdown.pop { animation: pop-in 0.4s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
 @media (max-width: 420px) { .rank-row img { width: 40px; height: 40px; } .rank-name { font-size: 18px; } }
 @media (prefers-reduced-motion: reduce) {
   .gift.ready, .rays, .bob, .shake, .coin-pill.got, .pet-btn.ready { animation: none; }
@@ -776,6 +814,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     <div class="scorebox" id="scorebox" hidden>
       <div class="score outline" id="score" aria-live="polite">0</div>
       <div class="best" id="bestLine">최고 0</div>
+      <div class="match-mini" id="matchMini" hidden><div class="match-clock" id="matchClock">2:00</div><ol id="matchMiniList"></ol></div>
       <div class="chips"><span class="stage-chip" id="stageChip">1단계</span><span class="power-chip" id="powerChip">작은 몸</span></div>
     </div>
     <div class="tray">
@@ -825,10 +864,12 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     </div>
     <div class="home-actions">
       <p class="who" id="whoLine" hidden><span><b id="whoName">친구</b>님 <span class="sync" id="syncState"></span></span><button class="link-btn" id="logoutBtn" type="button">로그아웃</button></p>
+      <p class="tier-line" id="tierLine" hidden><span class="tier-badge" id="tierBadge">브론즈 5</span><span id="tierNext">다음 티어까지 100포인트</span></p>
       <p class="who" id="localNote" hidden>Firebase 설정 전이라 기록이 이 기기에만 저장돼요</p>
       <div class="friend-tag"><img id="friendTagImg" alt=""><span class="tag-text"><span>함께하는 친구 <b id="friendTagName">병아리</b></span><span class="tag-power" id="friendTagPower">작은 몸 · 몸이 작아서 차 사이를 쏙 지나가요</span></span></div>
       <div class="row">
         <button class="btn big" id="startBtn" type="button">시작하기</button>
+        <button class="btn big match-btn" id="matchBtn" type="button">랭킹전</button>
         <button class="btn paper" id="friendsBtn" type="button">친구들 <span class="count" id="friendsCount">0/23</span></button>
         <button class="btn paper" id="petsBtn" type="button">펫 <span class="count" id="petsCount">0/5</span></button>
         <button class="btn paper" id="rankBtn" type="button">랭킹</button>
@@ -852,6 +893,18 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       <button type="button" data-move="left" aria-label="왼쪽으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="st-ink" style="stroke-width:3.4" d="M15 5l-7 7 7 7"/></svg></button>
       <button type="button" class="fwd" data-move="fwd" aria-label="앞으로 폴짝">폴짝</button>
       <button type="button" data-move="right" aria-label="오른쪽으로"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="st-ink" style="stroke-width:3.4" d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </section>
+
+  <div class="countdown outline-lg" id="countdown" aria-live="assertive" hidden></div>
+
+  <section class="screen match" id="screenMatch" hidden>
+    <div class="sheet match-sheet">
+      <h2 class="cause" id="matchTitle">랭킹전</h2>
+      <p class="match-note" id="matchNote">같이 달릴 친구를 찾고 있어요…</p>
+      <ol class="rank-list" id="matchList"></ol>
+      <p class="match-gain" id="matchGain" hidden></p>
+      <div class="row" id="matchActions"></div>
     </div>
   </section>
 
@@ -936,7 +989,11 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       <h2 id="rankTitle">랭킹</h2>
       <button class="round close" type="button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="st-ink" style="stroke-width:3.2" d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <p class="sub">가장 멀리 건넌 친구들이에요. 위에서부터 <b>50</b>등까지 보여요.</p>
+    <div class="tabs rank-tabs" role="tablist" aria-label="랭킹 종류">
+      <button class="tab on" id="rankTabBest" type="button" role="tab" aria-selected="true">최고 기록</button>
+      <button class="tab" id="rankTabTier" type="button" role="tab" aria-selected="false">티어</button>
+    </div>
+    <p class="sub" id="rankSub">가장 멀리 건넌 친구들이에요. 위에서부터 <b>50</b>등까지 보여요.</p>
     <p class="rank-msg" id="rankMsg" role="status"></p>
     <ol class="rank-list" id="rankList"></ol>
     <p class="rank-me" id="rankMe" hidden></p>
@@ -1086,11 +1143,26 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const wrapX = (x) => { let y = (x + HALF_LOOP) % LOOP; if (y < 0) y += LOOP; return y - HALF_LOOP; };
+  // World generation draws from its own stream, so a match seed builds the same map for everyone.
+  function mulberry32(a) {
+    return () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  let wr = Math.random;
+  const seedWorld = (seed) => { wr = seed ? mulberry32(seed) : Math.random; };
+  const wrand = (a, b) => a + wr() * (b - a);
+  const wrandInt = (a, b) => Math.floor(wrand(a, b + 1));
+  const wpick = (arr) => arr[Math.floor(wr() * arr.length)];
+  function wshuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(wr() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
   /* ================= save data ================= */
   let save = null;
-  function freshSave() { return { coins: 0, owned: ['chick'], selected: 'chick', best: 0, nextGiftAt: 0, muted: false, pets: [], pet: null, savedAt: 0 }; }
+  function freshSave() { return { coins: 0, owned: ['chick'], selected: 'chick', best: 0, nextGiftAt: 0, muted: false, pets: [], pet: null, savedAt: 0, rp: 0, lastMatch: '' }; }
   let localKey = SAVE_KEY;   // a signed-in player gets their own key, so a shared computer keeps players apart
   function readLocal() {
     try { return JSON.parse(localStorage.getItem(localKey) || 'null'); } catch (e) { return null; }
@@ -1113,6 +1185,8 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       if (Array.isArray(raw.pets)) s.pets = Array.from(new Set(raw.pets.filter((id) => PET[id])));
       if (PET[raw.pet] && s.pets.includes(raw.pet)) s.pet = raw.pet;
       if (Number.isFinite(raw.savedAt)) s.savedAt = Math.floor(raw.savedAt);
+      if (Number.isFinite(raw.rp)) s.rp = Math.max(0, Math.floor(raw.rp));
+      if (typeof raw.lastMatch === 'string') s.lastMatch = raw.lastMatch.slice(0, 40);
     }
     if (s.nextGiftAt > Date.now() + GIFT_MS) s.nextGiftAt = Date.now() + GIFT_MS;
     s.nextGiftAt = Math.floor(s.nextGiftAt);
@@ -1152,6 +1226,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       coins: Math.max(0, Math.floor(s.coins)), owned: s.owned.slice(0, 40), selected: s.selected,
       best: Math.max(0, Math.floor(s.best)), nextGiftAt: Math.floor(s.nextGiftAt), muted: !!s.muted,
       pets: s.pets.slice(0, 10), pet: s.pet || null, savedAt: Math.floor(s.savedAt || Date.now()),
+      rp: Math.max(0, Math.floor(s.rp || 0)), lastMatch: String(s.lastMatch || '').slice(0, 40),
     });
     function setStatus(st) { api.status = st; if (api.onStatus) api.onStatus(st); }
     // Report the signed-in player (or nobody) once, when the page opens.
@@ -1189,14 +1264,14 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       dirty = false;
       saving = true;
       const data = clean(save);
-      const rankKey = data.best > 0 ? api.nickname + '|' + data.best + '|' + data.selected : '';
+      const rankKey = data.best > 0 || data.rp > 0 ? [api.nickname, data.best, data.selected, data.rp].join('|') : '';
       try {
         const me = db.collection('players').doc(api.uid);
         if (rankKey && rankKey !== rankSent) {
           // The ranking entry must match the saved record, so both go up together.
           const batch = db.batch();
           batch.set(me, { nickname: api.nickname, save: data, updatedAt: stamp() });
-          batch.set(db.collection('ranks').doc(api.uid), { nickname: api.nickname, best: data.best, selected: data.selected, updatedAt: stamp() });
+          batch.set(db.collection('ranks').doc(api.uid), { nickname: api.nickname, best: data.best, selected: data.selected, rp: data.rp, updatedAt: stamp() });
           try {
             await batch.commit();
           } catch (e) {
@@ -1227,10 +1302,12 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       if (auth) await auth.signOut();
     };
     // Top players by best score, for the ranking board.
-    api.loadRanks = async (n) => {
-      const snap = await db.collection('ranks').orderBy('best', 'desc').limit(n).get();
+    api.loadRanks = async (n, field) => {
+      const snap = await db.collection('ranks').orderBy(field || 'best', 'desc').limit(n).get();
       return snap.docs.map((d) => Object.assign({ uid: d.id }, d.data()));
     };
+    api.db = () => db;
+    api.stamp = stamp;
     api.message = (err) => {
       const c = (err && err.code) || '';
       if (c === 'auth/email-already-in-use') return '이미 있는 닉네임이에요. 다른 닉네임을 골라 주세요.';
@@ -2150,6 +2227,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   let lastHazard = null;
   let lastRiver = { row: -99, dir: 1 };
   let boxPending = false;
+  let matchSeed = 0;   // set while a ranked match is on: same map for everyone, no pet boxes
   let padClock = 0;     // lily pads keep their own clock so the owl can stop them
   const LIGHT_ON = new THREE.Color(0xff3b30);
   const LIGHT_OFF = new THREE.Color(0x5a2420);
@@ -2198,7 +2276,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   function weightedPick(table) {
     let sum = 0;
     for (const [, w] of table) sum += w;
-    let r = Math.random() * sum;
+    let r = wr() * sum;
     for (const [k, w] of table) { r -= w; if (r <= 0) return k; }
     return table[0][0];
   }
@@ -2215,18 +2293,18 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       table = [['road', 36], ['river', 22], ['rail', 15], ['ice', themeOf(row) === 2 ? 22 : 14], ['lily', 13], ['siren', 11]];
     }
     let type = weightedPick(table);
-    if (type === lastHazard && Math.random() < 0.5) type = weightedPick(table);
+    if (type === lastHazard && wr() < 0.5) type = weightedPick(table);
     lastHazard = type;
     let n = 1;
-    if (type === 'road') n = randInt(1, STAGE.roadMax[s]);
-    else if (type === 'river') n = randInt(1, STAGE.riverMax[s]);
-    else if (type === 'ice') n = randInt(1, s === 0 ? 2 : 3);
-    else if (type === 'rail') n = randInt(1, STAGE.railMax[s]);
-    else if (Math.random() < STAGE.twinP[s]) n = 2;
+    if (type === 'road') n = wrandInt(1, STAGE.roadMax[s]);
+    else if (type === 'river') n = wrandInt(1, STAGE.riverMax[s]);
+    else if (type === 'ice') n = wrandInt(1, s === 0 ? 2 : 3);
+    else if (type === 'rail') n = wrandInt(1, STAGE.railMax[s]);
+    else if (wr() < STAGE.twinP[s]) n = 2;
     for (let i = 0; i < n; i++) genQueue.push(type);
     // Ice often runs straight into a road, so the slide has to be timed.
-    if (type === 'ice' && Math.random() < (s === 0 ? 0.5 : 0.75)) genQueue.push('road');
-    const rest = Math.random() < STAGE.restTwo[s] ? 2 : 1;
+    if (type === 'ice' && wr() < (s === 0 ? 0.5 : 0.75)) genQueue.push('road');
+    const rest = wr() < STAGE.restTwo[s] ? 2 : 1;
     for (let i = 0; i < rest; i++) genQueue.push('grass');
   }
   function takeType(row) {
@@ -2241,10 +2319,10 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   }
 
   function addTree(group, x, th) {
-    const lvl = randInt(0, 2);
+    const lvl = wrandInt(0, 2);
     const m = new THREE.Mesh(GEO.trees[th][lvl], MAT);
     m.position.x = x;
-    m.rotation.y = randInt(0, 3) * Math.PI / 2;
+    m.rotation.y = wrandInt(0, 3) * Math.PI / 2;
     m.castShadow = true;
     group.add(m);
     return TREE_TOP[lvl];
@@ -2252,7 +2330,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   function addSnowman(lane, x) {
     const m = new THREE.Mesh(GEO.snowman, MAT);
     m.position.x = x;
-    m.rotation.y = (Math.random() - 0.5) * 0.6;
+    m.rotation.y = (wr() - 0.5) * 0.6;
     m.castShadow = true;
     lane.group.add(m);
     lane.trees.set(x, SNOWMAN_TOP);
@@ -2264,7 +2342,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       const free = [];
       for (let c = -PLAY; c <= PLAY; c++) if (!cellBusy(lane, c)) free.push(c);
       if (!free.length) return false;
-      x = pick(free);
+      x = drop ? pick(free) : wpick(free);
     }
     const m = new THREE.Mesh(GEO.coin, COIN_MAT);
     m.position.set(x, drop ? 3.2 : 0.32, 0);
@@ -2278,7 +2356,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     const free = [];
     for (let c = -PLAY; c <= PLAY; c++) if (!cellBusy(lane, c)) free.push(c);
     if (!free.length) return false;
-    const x = pick(free);
+    const x = wpick(free);
     const m = new THREE.Mesh(GEO.box, MAT);
     m.position.set(x, 0.16, 0);
     m.castShadow = true;
@@ -2301,18 +2379,18 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     const row = lane.row;
     let cols = [];
     if (row <= -3) {
-      for (let x = -PLAY; x <= PLAY; x++) if (Math.random() < 0.75) cols.push(x);
+      for (let x = -PLAY; x <= PLAY; x++) if (wr() < 0.75) cols.push(x);
     } else if (row <= 2) {
-      for (const x of [-6, -5, 5, 6]) if (Math.random() < 0.35) cols.push(x);
+      for (const x of [-6, -5, 5, 6]) if (wr() < 0.35) cols.push(x);
     } else {
       const s = tierOf(row);
-      const pool = shuffle(Array.from({ length: PLAY * 2 + 1 }, (_, i) => i - PLAY));
-      cols = pool.slice(0, randInt(s >= 1 ? 1 : 0, row < 20 ? 2 : STAGE.trees[s]));
+      const pool = wshuffle(Array.from({ length: PLAY * 2 + 1 }, (_, i) => i - PLAY));
+      cols = pool.slice(0, wrandInt(s >= 1 ? 1 : 0, row < 20 ? 2 : STAGE.trees[s]));
     }
     for (const x of cols) lane.trees.set(x, addTree(lane.group, x, th));
     for (let x = PLAY + 1; x <= 11; x++) {
-      if (Math.random() < 0.42) addTree(lane.group, x, th);
-      if (Math.random() < 0.42) addTree(lane.group, -x, th);
+      if (wr() < 0.42) addTree(lane.group, x, th);
+      if (wr() < 0.42) addTree(lane.group, -x, th);
     }
   }
   function fillLoop(lane, pickItem, gapMin, gapMax, shadowsReceive) {
@@ -2322,9 +2400,9 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       const it = pickItem();
       if (pos + it.len + gapMin > HALF_LOOP) break;
       list.push({ len: it.len, x: pos + it.len / 2, geo: it.geo });
-      pos += it.len + rand(gapMin, gapMax);
+      pos += it.len + wrand(gapMin, gapMax);
     }
-    const shift = rand(0, LOOP);
+    const shift = wrand(0, LOOP);
     for (const v of list) {
       v.x = wrapX(v.x + shift);
       const m = new THREE.Mesh(v.geo, MAT);
@@ -2334,7 +2412,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       m.position.x = v.x;
       lane.group.add(m);
       v.mesh = m;
-      v.phase = Math.random() * 6;
+      v.phase = wr() * 6;
     }
     return list;
   }
@@ -2355,55 +2433,55 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     if (type === 'grass') {
       ground = new THREE.Mesh(GEO.grass[th][((row % 2) + 2) % 2], MAT);
       placeTrees(lane, th);
-      if (row > 3 && Math.random() < 0.35) addCoin(lane);
+      if (row > 3 && wr() < 0.35) addCoin(lane);
     } else if (type === 'road') {
       ground = new THREE.Mesh(peekType(row + 1) === 'road' ? GEO.roadDashed : GEO.road, MAT);
-      lane.dir = Math.random() < 0.5 ? 1 : -1;
-      lane.bikes = row >= STAGE_ROWS && Math.random() < sp('bikeP', row);
-      lane.speed = sp('carSpeed', row) * rand(0.85, 1.15) * (lane.bikes ? 1.7 : 1);
+      lane.dir = wr() < 0.5 ? 1 : -1;
+      lane.bikes = row >= STAGE_ROWS && wr() < sp('bikeP', row);
+      lane.speed = sp('carSpeed', row) * wrand(0.85, 1.15) * (lane.bikes ? 1.7 : 1);
       if (lane.bikes) {
-        lane.vehicles = fillLoop(lane, () => ({ len: 0.9, geo: pick(GEO.bike) }),
+        lane.vehicles = fillLoop(lane, () => ({ len: 0.9, geo: wpick(GEO.bike) }),
           sp('gapMin', row) + 1.6, sp('gapMax', row) + 1.6, false);
       } else {
         const truckP = sp('truckP', row);
-        lane.vehicles = fillLoop(lane, () => (Math.random() < truckP
-          ? { len: 2.4, geo: pick(GEO.truck) }
-          : { len: 1.3, geo: pick(GEO.car) }), sp('gapMin', row), sp('gapMax', row), false);
+        lane.vehicles = fillLoop(lane, () => (wr() < truckP
+          ? { len: 2.4, geo: wpick(GEO.truck) }
+          : { len: 1.3, geo: wpick(GEO.car) }), sp('gapMin', row), sp('gapMax', row), false);
       }
-      if (Math.random() < 0.15) addCoin(lane);
+      if (wr() < 0.15) addCoin(lane);
     } else if (type === 'river') {
-      ground = new THREE.Mesh(pick(GEO.river), MAT);
-      lane.dir = lastRiver.row === row - 1 ? -lastRiver.dir : (Math.random() < 0.5 ? 1 : -1);
+      ground = new THREE.Mesh(wpick(GEO.river), MAT);
+      lane.dir = lastRiver.row === row - 1 ? -lastRiver.dir : (wr() < 0.5 ? 1 : -1);
       lastRiver = { row, dir: lane.dir };
-      lane.speed = sp('raftSpeed', row) * rand(0.9, 1.1);
+      lane.speed = sp('raftSpeed', row) * wrand(0.9, 1.1);
       const lens = RAFT_LENS[s];
-      lane.vehicles = fillLoop(lane, () => { const l = pick(lens); return { len: l, geo: GEO.raft[l] }; },
+      lane.vehicles = fillLoop(lane, () => { const l = wpick(lens); return { len: l, geo: GEO.raft[l] }; },
         sp('raftGapMin', row), sp('raftGapMax', row), true);
     } else if (type === 'ice') {
-      ground = new THREE.Mesh(pick(GEO.ice), MAT);
-      const pool = shuffle(Array.from({ length: PLAY * 2 + 1 }, (_, i) => i - PLAY));
-      for (const x of pool.slice(0, randInt(0, s === 0 ? 1 : 2))) addSnowman(lane, x);
-      if (Math.random() < 0.3) addCoin(lane);
+      ground = new THREE.Mesh(wpick(GEO.ice), MAT);
+      const pool = wshuffle(Array.from({ length: PLAY * 2 + 1 }, (_, i) => i - PLAY));
+      for (const x of pool.slice(0, wrandInt(0, s === 0 ? 1 : 2))) addSnowman(lane, x);
+      if (wr() < 0.3) addCoin(lane);
     } else if (type === 'lily') {
-      ground = new THREE.Mesh(pick(GEO.river), MAT);
+      ground = new THREE.Mesh(wpick(GEO.river), MAT);
       const up = sp('lilyUp', row), wobble = 1.0, down = sp('lilyDown', row);
       lane.lily = { up, wobble, down, cycle: up + wobble + down };
       lane.pads = new Map();
       const skip = sp('lilySkip', row);
       // Pads on most columns, never leaving a gap wider than one cell.
-      for (let x = -PLAY; x <= PLAY; x += Math.random() < skip ? 2 : 1) {
-        const m = new THREE.Mesh(Math.random() < 0.25 ? GEO.padFlower : GEO.pad, MAT);
+      for (let x = -PLAY; x <= PLAY; x += wr() < skip ? 2 : 1) {
+        const m = new THREE.Mesh(wr() < 0.25 ? GEO.padFlower : GEO.pad, MAT);
         m.position.set(x, PAD_REST, 0);
-        m.rotation.y = randInt(0, 3) * Math.PI / 2;
+        m.rotation.y = wrandInt(0, 3) * Math.PI / 2;
         m.receiveShadow = true;
         group.add(m);
-        lane.pads.set(x, { mesh: m, phase: rand(0, lane.lily.cycle) });
+        lane.pads.set(x, { mesh: m, phase: wrand(0, lane.lily.cycle) });
       }
     } else {
       // Rail or siren road: one fast vehicle at a time, announced by flashing lights.
       const siren = type === 'siren';
       ground = new THREE.Mesh(siren ? GEO.road : GEO.rail, MAT);
-      lane.dir = Math.random() < 0.5 ? 1 : -1;
+      lane.dir = wr() < 0.5 ? 1 : -1;
       const mesh = new THREE.Mesh(siren ? GEO.police : GEO.train, MAT);
       mesh.castShadow = true;
       mesh.visible = false;
@@ -2412,7 +2490,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       lane.train = {
         mesh, len: siren ? POLICE_LEN : TRAIN_LEN, x: 0,
         speed: siren ? sp('policeSpeed', row) : sp('trainSpeed', row),
-        state: 'wait', timer: rand(1, 5), bell: 0, bellHi: false, scammed: false,
+        state: 'wait', timer: wrand(1, 5), bell: 0, bellHi: false, scammed: false,
         waitMin: sp('waitMin', row), waitMax: sp('waitMax', row),
       };
       const offA = new THREE.MeshBasicMaterial({ color: LIGHT_OFF });
@@ -2431,7 +2509,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     }
     // About one row in twenty hides a mystery box; it waits for the next row you can stand on.
     const boxChance = save.pets.length >= PETS.length ? BOX_CHANCE_DONE : BOX_CHANCE;
-    if (row > 6 && Math.random() < boxChance) boxPending = true;
+    if (!matchSeed && row > 6 && wr() < boxChance) boxPending = true;
     if (boxPending && (type === 'grass' || type === 'road' || type === 'ice') && addBox(lane)) boxPending = false;
     ground.receiveShadow = true;
     group.add(ground);
@@ -2593,6 +2671,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     for (const lane of Array.from(lanes.values())) removeLane(lane);
     clearParticles();
     genQueue = []; lastHazard = null; lastRiver = { row: -99, dir: 1 }; boxPending = false;
+    seedWorld(matchSeed);
     nextRow = -14; maxRow = 0; score = 0; moves = 0; queued = null; nextCoinRow = COIN_EVERY;
     curStage = 0; roarT = 0; stopT = 0; bubbleT = 0; petCD = 0; petQueued = false;
     document.body.classList.remove('timestop');
@@ -2707,6 +2786,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     maxRow = row;
     score = maxRow;
     $('score').textContent = score;
+    if (match) matchScore();
     // Beating your best pays once per run, the moment you pass it.
     if (!bestBonusGiven && score > runStartBest && score >= BEST_BONUS_MIN) {
       bestBonusGiven = true;
@@ -3317,7 +3397,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   function startGame() {
     if (state === 'playing' || state === 'dying') return;
     sfx.unlock();
-    const fromHome = state === 'home';
+    const fromHome = state === 'home' || state === 'countdown';
     state = 'playing';
     if (!fromHome) resetWorld();
     player.targetRotY = 0;
@@ -3337,6 +3417,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   }
   function showGameOver(cause, newBest) {
     if (state !== 'dying') return;
+    if (match && match.phase === 'play') { state = 'result'; matchRunOver(CAUSES[cause] || CAUSES.car); return; }
     state = 'over';
     overAt = performance.now();
     const c = CAUSES[cause] || CAUSES.car;
@@ -3356,7 +3437,8 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     $('screenHome').hidden = name !== 'home';
     $('screenPlay').hidden = name !== 'play';
     $('screenOver').hidden = name !== 'over';
-    $('scorebox').hidden = name === 'home' || name === 'login';
+    $('screenMatch').hidden = name !== 'match';
+    $('scorebox').hidden = name === 'home' || name === 'login' || name === 'match';
     document.body.classList.toggle('logged-out', name === 'login');
   }
 
@@ -3451,9 +3533,10 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     resize();
     $('whoName').textContent = cloud.nickname || '친구';
     $('whoLine').hidden = !cloud.uid;
+    updateTier();
   }
   async function logOut() {
-    if (state !== 'home' && state !== 'over') return;
+    if ((state !== 'home' && state !== 'over') || match) return;
     $('logoutBtn').disabled = true;
     await cloud.signOut();
     $('logoutBtn').disabled = false;
@@ -3715,36 +3798,54 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   /* ================= ranking board ================= */
   const RANK_SIZE = 50;
   let rankLoad = 0;
-  async function openRanks() {
+  let rankField = 'best';
+  function setRankTab(field) {
+    rankField = field;
+    const tier = field === 'rp';
+    $('rankTabBest').classList.toggle('on', !tier);
+    $('rankTabTier').classList.toggle('on', tier);
+    $('rankTabBest').setAttribute('aria-selected', String(!tier));
+    $('rankTabTier').setAttribute('aria-selected', String(tier));
+    $('rankSub').innerHTML = tier
+      ? '랭킹전 포인트가 많은 친구들이에요. 위에서부터 <b>50</b>등까지 보여요.'
+      : '가장 멀리 건넌 친구들이에요. 위에서부터 <b>50</b>등까지 보여요.';
+  }
+  function openRanks() {
+    setRankTab('best');
+    openModal('rankModal', '.close');
+    loadRankList();
+  }
+  async function loadRankList() {
     const list = $('rankList'), msg = $('rankMsg'), me = $('rankMe');
+    const field = rankField, mineNow = field === 'rp' ? save.rp : save.best;
     list.textContent = '';
     me.hidden = true;
-    openModal('rankModal', '.close');
     if (!cloud.configured || !cloud.uid) { msg.textContent = '로그인해야 랭킹을 볼 수 있어요.'; return; }
     msg.textContent = '랭킹을 불러오는 중…';
     const ticket = ++rankLoad;
     cloud.flush();   // send a fresh best score first, if there is one waiting
     let rows;
     try {
-      rows = await cloud.loadRanks(RANK_SIZE);
+      rows = await cloud.loadRanks(RANK_SIZE, field);
     } catch (e) {
       if (ticket === rankLoad) msg.textContent = '랭킹을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.';
       return;
     }
     if (ticket !== rankLoad || $('rankModal').hidden) return;
-    // My newest best may not have reached the board yet: show it in its place right away.
+    const val = (r) => Math.floor(r[field] || 0);
+    // My newest numbers may not have reached the board yet: show them in their place right away.
     const mine = rows.find((r) => r.uid === cloud.uid);
-    if (save.best > 0 && (!mine || mine.best < save.best)) {
+    if (mineNow > 0 && (!mine || val(mine) < mineNow)) {
       if (mine) rows.splice(rows.indexOf(mine), 1);
-      rows.push({ uid: cloud.uid, nickname: cloud.nickname, best: save.best, selected: save.selected });
-      rows.sort((a, b) => b.best - a.best);
+      rows.push({ uid: cloud.uid, nickname: cloud.nickname, best: save.best, rp: save.rp, selected: save.selected });
+      rows.sort((a, b) => val(b) - val(a));
       rows = rows.slice(0, RANK_SIZE);
     }
-    rows = rows.filter((r) => r.best > 0);
-    msg.textContent = rows.length ? '' : '아직 기록이 없어요. 첫 번째 주인공이 되어 보세요!';
+    rows = rows.filter((r) => val(r) > 0);
+    msg.textContent = rows.length ? '' : field === 'rp' ? '아직 랭킹전 기록이 없어요. 랭킹전에서 첫 포인트를 얻어 보세요!' : '아직 기록이 없어요. 첫 번째 주인공이 되어 보세요!';
     let place = 0, myPlace = 0;
     rows.forEach((r, i) => {
-      if (i === 0 || r.best < rows[i - 1].best) place = i + 1;   // same score, same place
+      if (i === 0 || val(r) < val(rows[i - 1])) place = i + 1;   // same score, same place
       const isMe = r.uid === cloud.uid;
       if (isMe) myPlace = place;
       const li = document.createElement('li');
@@ -3761,15 +3862,392 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       if (isMe) { const tag = document.createElement('small'); tag.textContent = '(나)'; name.appendChild(tag); }
       const sc = document.createElement('span');
       sc.className = 'rank-score';
-      sc.innerHTML = Math.floor(r.best) + '<small>칸</small>';
-      li.append(no, img, name, sc);
+      sc.innerHTML = val(r) + '<small>' + (field === 'rp' ? '점' : '칸') + '</small>';
+      li.append(no, img, name, tierBadge(r.rp), sc);
       list.appendChild(li);
     });
     me.hidden = false;
-    me.textContent = save.best <= 0 ? '한 칸이라도 건너면 랭킹에 이름이 올라가요.'
-      : myPlace ? '나는 ' + myPlace + '등이에요! 최고 기록 ' + save.best + '칸'
-      : '내 최고 기록은 ' + save.best + '칸이에요. ' + RANK_SIZE + '등 안에 들면 이름이 나와요.';
+    if (field === 'rp') {
+      me.textContent = save.rp <= 0 ? '랭킹전에서 포인트를 얻으면 이름이 올라가요.'
+        : (myPlace ? '나는 ' + myPlace + '등이에요! ' : '') + '내 티어는 ' + tierInfo(save.rp).name + ', 포인트 ' + save.rp + '점';
+    } else {
+      me.textContent = save.best <= 0 ? '한 칸이라도 건너면 랭킹에 이름이 올라가요.'
+        : myPlace ? '나는 ' + myPlace + '등이에요! 최고 기록 ' + save.best + '칸'
+        : '내 최고 기록은 ' + save.best + '칸이에요. ' + RANK_SIZE + '등 안에 들면 이름이 나와요.';
+    }
   }
+  /* ================= tiers and ranked match ================= */
+  // Tiers climb only: each match place gives points, and every TIER_STEP points is one step up.
+  const TIERS = [
+    { name: '브론즈', color: '#d9a072' }, { name: '실버', color: '#cdd6e2' }, { name: '골드', color: '#ffc93c' },
+    { name: '플래티넘', color: '#7fded0' }, { name: '에메랄드', color: '#5fd38a' }, { name: '다이아몬드', color: '#8cc8ff' },
+    { name: '마스터', color: '#c9a4ff' }, { name: '그랜드마스터', color: '#ff8f8f' }, { name: '챌린저', color: '#ffe066' },
+  ];
+  const TIER_STEP = 100;
+  const PLACE_POINTS = [50, 40, 30, 20, 10];
+  const MATCH_MAX = 5;
+  const LOBBY_MS = 25000;      // how long a room waits for players
+  const MATCH_MS = 120000;     // a match lasts at most two minutes
+  const STALE_LOBBY = 15000, STALE_PLAY = 25000;   // no word from a player this long: they left
+  function tierInfo(rp) {
+    const top = TIERS.length * 5 - 1;
+    const idx = Math.min(Math.floor(Math.max(0, rp || 0) / TIER_STEP), top);
+    const t = TIERS[Math.floor(idx / 5)];
+    return { idx, name: t.name + ' ' + (5 - (idx % 5)), color: t.color, toNext: idx === top ? 0 : (idx + 1) * TIER_STEP - rp };
+  }
+  function tierBadge(rp) {
+    const t = tierInfo(rp);
+    const b = document.createElement('span');
+    b.className = 'tier-badge';
+    b.style.setProperty('--tier', t.color);
+    b.textContent = t.name;
+    return b;
+  }
+  function updateTier() {
+    const t = tierInfo(save.rp);
+    $('tierLine').hidden = !cloud.uid;
+    $('tierBadge').textContent = t.name;
+    $('tierBadge').style.setProperty('--tier', t.color);
+    $('tierNext').textContent = t.toNext ? '포인트 ' + save.rp + '점 · 다음 티어까지 ' + t.toNext + '점' : '포인트 ' + save.rp + '점 · 가장 높은 티어예요!';
+  }
+
+  let match = null;
+  const playersOf = (m) => Array.from(m.players.values());
+  const msOf = (ts) => (ts && ts.toMillis ? ts.toMillis() : 0);
+  // Server time as the room sees it: the newest heartbeat from anyone, mine included.
+  const roomNow = (m) => Math.max(0, ...playersOf(m).map((p) => msOf(p.seen)));
+  function isFresh(m, p) {
+    const limit = m.phase === 'lobby' ? STALE_LOBBY : STALE_PLAY;
+    return msOf(p.seen) >= roomNow(m) - limit || p.uid === cloud.uid;
+  }
+  function myEntry() {
+    return { nickname: cloud.nickname, selected: save.selected, rp: save.rp, score: 0, scoreAt: 0, done: false, seen: cloud.stamp() };
+  }
+  function setMatchView(title, note, actions) {
+    $('matchTitle').textContent = title;
+    $('matchNote').textContent = note;
+    const box = $('matchActions');
+    box.textContent = '';
+    for (const a of actions) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn' + (a.paper ? ' paper' : '') + (a.big ? ' big' : '');
+      b.textContent = a.label;
+      b.addEventListener('click', a.onClick);
+      box.appendChild(b);
+    }
+  }
+
+  async function openMatch() {
+    if (state !== 'home' && state !== 'over') return;
+    sfx.unlock();
+    if (!cloud.configured || !cloud.uid) { toast('로그인해야 랭킹전을 할 수 있어요'); return; }
+    if (match) return;
+    match = { id: null, ref: null, phase: 'joining', players: new Map(), doc: null, timers: [], unsubs: [], lastWrite: 0, writeTimer: 0, busy: false };
+    state = 'lobby';
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    $('matchList').textContent = '';
+    $('matchGain').hidden = true;
+    setMatchView('랭킹전', '같이 달릴 친구를 찾고 있어요…', [{ label: '나가기', paper: true, onClick: leaveMatch }]);
+    setScreen('match');
+    const m = match;
+    try {
+      const ref = await findRoom();
+      if (match !== m) { if (ref) dropOut(ref); return; }
+      m.ref = ref; m.id = ref.id; m.phase = 'lobby';
+      watchMatch(m);
+    } catch (e) {
+      if (match !== m) return;
+      endMatch();
+      toast('랭킹전에 들어가지 못했어요. 인터넷 연결을 확인해 주세요.');
+    }
+  }
+  // Join a room that is still gathering players, or open a new one.
+  async function findRoom() {
+    const db = cloud.db();
+    const snap = await db.collection('matches').where('openUntil', '>', Date.now()).limit(10).get();
+    const rooms = snap.docs.filter((d) => d.data().status === 'waiting' && d.data().n < MATCH_MAX)
+      .sort((a, b) => b.data().n - a.data().n);
+    for (const d of rooms) {
+      try {
+        const ok = await db.runTransaction(async (tx) => {
+          const cur = await tx.get(d.ref);
+          const r = cur.exists ? cur.data() : null;
+          if (!r || r.status !== 'waiting' || r.n >= MATCH_MAX || r.openUntil <= Date.now()) return false;
+          const n = r.n + 1;
+          tx.update(d.ref, { n, openUntil: n >= MATCH_MAX ? Date.now() : r.openUntil });
+          tx.set(d.ref.collection('players').doc(cloud.uid), myEntry());
+          return true;
+        });
+        if (ok) return d.ref;
+      } catch (e) { /* that room filled up or closed: try the next one */ }
+    }
+    const ref = db.collection('matches').doc();
+    const batch = db.batch();
+    batch.set(ref, {
+      status: 'waiting', n: 1, seed: 1 + Math.floor(Math.random() * 2147483000),
+      openUntil: Date.now() + LOBBY_MS, host: cloud.uid, roster: [], createdAt: cloud.stamp(),
+    });
+    batch.set(ref.collection('players').doc(cloud.uid), myEntry());
+    await batch.commit();
+    return ref;
+  }
+  function watchMatch(m) {
+    m.unsubs.push(m.ref.onSnapshot((d) => {
+      if (match !== m || !d.exists) return;
+      m.doc = d.data();
+      if (m.phase === 'lobby' && m.doc.status === 'playing') {
+        if ((m.doc.roster || []).includes(cloud.uid)) beginCountdown(m);
+        else { endMatch(); toast('출발에 늦었어요. 랭킹전을 다시 눌러 주세요.'); }
+      }
+      matchTick();
+    }, () => { if (match === m && m.phase === 'lobby') { endMatch(); toast('랭킹전 연결이 끊겼어요'); } }));
+    m.unsubs.push(m.ref.collection('players').onSnapshot((qs) => {
+      if (match !== m) return;
+      m.players = new Map(qs.docs.map((d) => [d.id, Object.assign({ uid: d.id }, d.data({ serverTimestamps: 'estimate' }))]));
+      matchTick();
+    }, () => {}));
+    // Heartbeat: lets everyone see who is still here.
+    m.timers.push(setInterval(() => {
+      if (match !== m || m.phase === 'done') return;
+      if (m.phase === 'lobby' || Date.now() - m.lastWrite > 8000) writeMe(m, {});
+    }, 4000));
+    m.timers.push(setInterval(matchTick, 500));
+  }
+  function writeMe(m, fields) {
+    m.lastWrite = Date.now();
+    m.ref.collection('players').doc(cloud.uid).update(Object.assign({ seen: cloud.stamp() }, fields)).catch(() => {});
+  }
+
+  // Runs twice a second and on every update from the room.
+  function matchTick() {
+    const m = match;
+    if (!m || !m.doc) return;
+    if (m.phase === 'lobby') lobbyTick(m);
+    else if (m.phase === 'play') {
+      const left = Math.max(0, m.endAt - Date.now());
+      const clock = $('matchClock');
+      clock.textContent = Math.floor(left / 60000) + ':' + String(Math.floor(left / 1000) % 60).padStart(2, '0');
+      clock.classList.toggle('low', left < 15000);
+      renderMini(m);
+      if (left <= 0 && state === 'playing') timeUp();
+    } else if (m.phase === 'wait') {
+      renderStandings(m, false);
+      const roster = m.doc.roster || [];
+      const allDone = roster.every((uid) => { const p = m.players.get(uid); return !p || p.done || !isFresh(m, p); });
+      if (allDone || Date.now() > m.endAt + 15000) finishMatch(m);
+    }
+  }
+  function lobbyTick(m) {
+    const fresh = playersOf(m).filter((p) => isFresh(m, p));
+    renderLobby(m, fresh);
+    const left = m.doc.openUntil - Date.now();
+    const count = fresh.length + '/' + MATCH_MAX + '명';
+    if (left > 0) { $('matchNote').textContent = Math.ceil(left / 1000) + '초 뒤에 출발해요 · ' + count; return; }
+    if (m.busy) return;
+    m.busy = true;
+    const db = cloud.db();
+    if (fresh.length >= 2) {
+      $('matchNote').textContent = '곧 출발해요! · ' + count;
+      const roster = fresh.map((p) => p.uid).slice(0, MATCH_MAX);
+      db.runTransaction(async (tx) => {
+        const cur = await tx.get(m.ref);
+        if (!cur.exists || cur.data().status !== 'waiting') return;
+        tx.update(m.ref, { status: 'playing', roster, openUntil: 0, startedAt: cloud.stamp() });
+      }).catch(() => {}).then(() => { setTimeout(() => { m.busy = false; }, 1500); });
+    } else {
+      // Nobody else yet: keep the room open a little longer.
+      $('matchNote').textContent = '다른 친구를 기다리고 있어요 · ' + count;
+      m.ref.update({ openUntil: Date.now() + LOBBY_MS }).catch(() => {}).then(() => { setTimeout(() => { m.busy = false; }, 1500); });
+    }
+  }
+  function rowFor(p, place, extra) {
+    const li = document.createElement('li');
+    li.className = 'rank-row' + (p.uid === cloud.uid ? ' me' : '') + (place && place <= 3 ? ' top' + place : '');
+    const no = document.createElement('span');
+    no.className = 'rank-no';
+    no.textContent = place || '·';
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = (FRIEND[p.selected] && thumbs[p.selected]) || thumbs.chick || '';
+    const name = document.createElement('span');
+    name.className = 'rank-name';
+    name.textContent = p.nickname || '친구';
+    if (p.uid === cloud.uid) { const tag = document.createElement('small'); tag.textContent = '(나)'; name.appendChild(tag); }
+    li.append(no, img, name, tierBadge(p.rp));
+    if (extra) li.appendChild(extra);
+    return li;
+  }
+  function renderLobby(m, fresh) {
+    const list = $('matchList');
+    list.textContent = '';
+    for (const p of fresh) list.appendChild(rowFor(p, 0));
+  }
+  // Order: farther first; on a tie, whoever got there first.
+  function standings(m) {
+    return (m.doc.roster || []).map((uid) => m.players.get(uid) || { uid, nickname: '친구', score: 0, scoreAt: 0 })
+      .sort((a, b) => (b.score || 0) - (a.score || 0) || (a.scoreAt || 0) - (b.scoreAt || 0));
+  }
+  function renderMini(m) {
+    const list = $('matchMiniList');
+    list.textContent = '';
+    standings(m).forEach((p, i) => {
+      const li = document.createElement('li');
+      li.className = (p.uid === cloud.uid ? 'me' : '') + (p.done ? ' out' : '');
+      const a = document.createElement('span'); a.textContent = (i + 1) + '. ' + (p.nickname || '친구');
+      const b = document.createElement('span'); b.textContent = (p.uid === cloud.uid ? score : p.score || 0) + '칸';
+      li.append(a, b);
+      list.appendChild(li);
+    });
+  }
+  function renderStandings(m, final) {
+    const list = $('matchList');
+    list.textContent = '';
+    standings(m).forEach((p, i) => {
+      const extra = document.createElement('span');
+      extra.className = 'rank-score';
+      extra.innerHTML = (p.score || 0) + '<small>칸</small>';
+      const li = rowFor(p, i + 1, extra);
+      if (!final) {
+        const st = document.createElement('span');
+        st.className = 'rank-state';
+        st.textContent = p.done ? '끝' : isFresh(m, p) ? '달리는 중' : '나감';
+        li.insertBefore(st, extra);
+      }
+      if (!p.done && !isFresh(m, p)) li.classList.add('gone');
+      list.appendChild(li);
+    });
+  }
+
+  function beginCountdown(m) {
+    m.phase = 'countdown';
+    matchSeed = m.doc.seed;
+    state = 'countdown';
+    resetWorld();
+    player.targetRotY = 0;
+    $('score').textContent = '0';
+    $('bestLine').textContent = '최고 ' + save.best;
+    $('matchMini').hidden = false;
+    $('matchClock').textContent = '2:00';
+    setScreen('play');
+    renderMini(m);
+    const el = $('countdown');
+    let n = 3;
+    const show = (txt) => { el.hidden = false; el.textContent = txt; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); };
+    show(n);
+    sfx.pop();
+    const iv = setInterval(() => {
+      if (match !== m) { clearInterval(iv); el.hidden = true; return; }
+      n--;
+      if (n > 0) { show(n); sfx.pop(); return; }
+      clearInterval(iv);
+      show('출발!');
+      sfx.fanfare();
+      setTimeout(() => { el.hidden = true; }, 700);
+      m.phase = 'play';
+      m.startAt = Date.now();
+      m.endAt = m.startAt + MATCH_MS;
+      startGame();
+    }, 1000);
+    m.timers.push(iv);
+  }
+  // New farthest row in a match: tell the room, at most every three seconds.
+  function matchScore() {
+    const m = match;
+    if (!m || m.phase !== 'play') return;
+    m.myScoreAt = Date.now() - m.startAt;
+    if (m.writeTimer) return;
+    const send = () => { m.writeTimer = 0; if (match === m && m.phase === 'play') writeMe(m, { score, scoreAt: m.myScoreAt }); };
+    const wait = Math.max(0, 3000 - (Date.now() - m.lastWrite));
+    if (wait === 0) send(); else m.writeTimer = setTimeout(send, wait);
+  }
+  function timeUp() {
+    if (state !== 'playing') return;
+    state = 'result';
+    queued = null;
+    if (score > save.best) save.best = score;
+    persist();
+    sfx.fanfare();
+    matchRunOver({ text: '시간이 다 됐어요!' });
+  }
+  // My run is over (crash or time): report the final score, then wait for the others.
+  function matchRunOver(cause) {
+    const m = match;
+    if (!m || m.phase !== 'play') return;
+    m.phase = 'wait';
+    clearTimeout(m.writeTimer);
+    m.writeTimer = 0;
+    writeMe(m, { score, scoreAt: m.myScoreAt || 0, done: true });
+    const mine = m.players.get(cloud.uid);
+    if (mine) { mine.score = score; mine.scoreAt = m.myScoreAt || 0; mine.done = true; }
+    $('matchMini').hidden = true;
+    $('matchGain').hidden = true;
+    setMatchView(cause.text, score + '칸을 건넜어요. 다른 친구들이 끝날 때까지 기다려 주세요.', []);
+    setScreen('match');
+    matchTick();
+  }
+  function finishMatch(m) {
+    if (m.phase !== 'wait') return;
+    m.phase = 'done';
+    stopWatching(m);
+    const order = standings(m);
+    renderStandings(m, true);
+    const i = order.findIndex((p) => p.uid === cloud.uid);
+    const pts = i >= 0 ? PLACE_POINTS[i] || 0 : 0;
+    const before = tierInfo(save.rp);
+    if (pts && save.lastMatch !== m.id) {
+      save.rp += pts;
+      save.lastMatch = m.id;
+      persist();
+    }
+    const after = tierInfo(save.rp);
+    updateTier();
+    const gain = $('matchGain');
+    gain.hidden = false;
+    gain.textContent = '';
+    gain.append((i + 1) + '등! 포인트 +' + pts + ' ', tierBadge(save.rp));
+    if (after.idx > before.idx) { sfx.fanfare(); toast('티어가 올라갔어요! 지금 티어는 ' + after.name); }
+    else if (i === 0) sfx.fanfare();
+    setMatchView('랭킹전 결과', after.toNext ? '다음 티어까지 ' + after.toNext + '점 남았어요.' : '가장 높은 티어예요!', [
+      { label: '한 번 더', big: true, onClick: () => { endMatch(true); openMatch(); } },
+      { label: '홈으로', paper: true, onClick: () => endMatch() },
+    ]);
+  }
+  function stopWatching(m) {
+    m.unsubs.forEach((u) => { try { u(); } catch (e) { /* already closed */ } });
+    m.unsubs = [];
+    m.timers.forEach((t) => clearInterval(t));
+    m.timers = [];
+    clearTimeout(m.writeTimer);
+  }
+  // Leave a room before it starts: free the seat.
+  function dropOut(ref) {
+    const db = cloud.db();
+    db.runTransaction(async (tx) => {
+      const cur = await tx.get(ref);
+      if (!cur.exists || cur.data().status !== 'waiting') return;
+      tx.update(ref, { n: Math.max(0, cur.data().n - 1) });
+      tx.delete(ref.collection('players').doc(cloud.uid));
+    }).catch(() => {});
+  }
+  function leaveMatch() {
+    const m = match;
+    if (m && m.ref && m.phase === 'lobby') dropOut(m.ref);
+    endMatch();
+  }
+  // Back to the normal game. `again` keeps the screen while a new match is found.
+  function endMatch(again) {
+    const m = match;
+    if (m) stopWatching(m);
+    match = null;
+    matchSeed = 0;
+    $('matchMini').hidden = true;
+    $('countdown').hidden = true;
+    state = 'home';
+    resetWorld();
+    if (!again) setScreen('home');
+  }
+
   function openPets() {
     renderPets();
     openModal('petsModal', '.close');
@@ -3839,6 +4317,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   }
   function openGift() {
     sfx.unlock();
+    if (match) { toast('랭킹전이 끝나면 선물 상자를 열 수 있어요'); return; }
     const left = giftLeft();
     if (left > 0) { toast('선물 상자는 ' + fmtLong(left) + ' 뒤에 열 수 있어요'); return; }
     openModal('revealModal');
@@ -3931,6 +4410,9 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     $('mythBtn').addEventListener('click', () => drawFriend('myth'));
     $('petsBtn').addEventListener('click', openPets);
     $('rankBtn').addEventListener('click', openRanks);
+    $('matchBtn').addEventListener('click', openMatch);
+    $('rankTabBest').addEventListener('click', () => { setRankTab('best'); loadRankList(); });
+    $('rankTabTier').addEventListener('click', () => { setRankTab('rp'); loadRankList(); });
     $('overRankBtn').addEventListener('click', openRanks);
     $('rankModal').addEventListener('click', (e) => {
       if (e.target === $('rankModal') || e.target.closest('[data-close]')) closeModal('rankModal');

@@ -10,6 +10,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // 랭킹판: 로그인한 사람은 누구나 볼 수 있고, 쓰는 건 본인 것만 돼요.
+    // 점수·닉네임·친구는 같은 순간 저장된 내 기록(players)과 똑같아야 해요.
+    match /ranks/{uid} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && validRank(request.resource.data,
+             getAfter(/databases/$(database)/documents/players/$(uid)).data);
+      allow delete: if false;
+    }
+
+    function validRank(d, p) {
+      return d.keys().hasOnly(['nickname', 'best', 'selected', 'updatedAt'])
+        && d.nickname == p.nickname
+        && d.best == p.save.best
+        && d.selected == p.save.selected
+        && d.updatedAt == request.time;
+    }
+
     function validPlayer(d) {
       return d.keys().hasOnly(['nickname', 'save', 'updatedAt'])
         && d.nickname is string && d.nickname.size() >= 2 && d.nickname.size() <= 10

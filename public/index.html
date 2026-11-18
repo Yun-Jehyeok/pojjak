@@ -715,6 +715,33 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
 @keyframes fade-out { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg) scale(1.04); } 75% { transform: rotate(10deg) scale(1.04); } }
+.modal.rank-modal { width: min(520px, 100%); }
+.rank-msg { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink-soft); text-align: center; }
+.rank-msg:empty { display: none; }
+.rank-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 8px;
+  background: var(--mist); border: 3px solid var(--ink); border-radius: 18px;
+}
+.rank-row.me { background: var(--sun); }
+.rank-no {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-size: 20px;
+  background: var(--paper); border: 3px solid var(--ink);
+}
+.rank-row.top1 .rank-no { background: var(--sun); }
+.rank-row.top2 .rank-no { background: #dfe6f0; }
+.rank-row.top3 .rank-no { background: #f2b98a; }
+.rank-row.me.top1 .rank-no { background: var(--paper); }
+.rank-row img { flex: none; width: 48px; height: 48px; }
+.rank-name { flex: 1; min-width: 0; font-family: var(--font-display); font-size: 21px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-name small { font-family: var(--font-body); font-size: 14px; font-weight: 700; margin-left: 4px; }
+.rank-score { flex: none; font-family: var(--font-display); font-size: 22px; }
+.rank-score small { font-size: 15px; margin-left: 2px; }
+.rank-me { margin: 0; font-size: 16px; font-weight: 700; text-align: center; color: var(--ink-soft); }
+@media (max-width: 420px) { .rank-row img { width: 40px; height: 40px; } .rank-name { font-size: 18px; } }
 @media (prefers-reduced-motion: reduce) {
   .gift.ready, .rays, .bob, .shake, .coin-pill.got, .pet-btn.ready { animation: none; }
   .plus { transform: translate(-50%, 6px); animation-name: fade-out; }
@@ -804,6 +831,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
         <button class="btn big" id="startBtn" type="button">시작하기</button>
         <button class="btn paper" id="friendsBtn" type="button">친구들 <span class="count" id="friendsCount">0/23</span></button>
         <button class="btn paper" id="petsBtn" type="button">펫 <span class="count" id="petsCount">0/5</span></button>
+        <button class="btn paper" id="rankBtn" type="button">랭킹</button>
       </div>
       <p class="keys"><kbd>스페이스바</kbd> 앞으로 <span aria-hidden="true">·</span> <kbd>←</kbd><kbd>→</kbd> 옆으로</p>
       <p class="keys touch-only">아래 버튼으로 폴짝 뛰어요</p>
@@ -840,6 +868,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
         <button class="btn big" id="againBtn" type="button">다시 하기</button>
         <button class="btn paper" id="overFriendsBtn" type="button">친구들</button>
         <button class="btn paper" id="overPetsBtn" type="button">펫</button>
+        <button class="btn paper" id="overRankBtn" type="button">랭킹</button>
       </div>
       <p class="keys small">스페이스바를 눌러도 다시 시작해요</p>
     </div>
@@ -898,6 +927,19 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     <p class="sub">모은 펫 <b id="petOwned">0</b> / 5 · 길에서 5% 확률로 나오는 보라색 랜덤 박스를 먹으면 펫이 생겨요. 한 번 얻은 펫은 영원히 내 거예요.</p>
     <div class="friend-grid fives" id="petGrid"></div>
     <p class="pet-help">게임 중에 <kbd>Shift</kbd> 키나 화면의 펫 버튼을 누르면 펫 능력을 써요. 한 번 쓰면 30초 뒤에 다시 쓸 수 있어요.</p>
+  </div>
+</div>
+
+<div class="backdrop" id="rankModal" hidden>
+  <div class="modal rank-modal" role="dialog" aria-modal="true" aria-labelledby="rankTitle">
+    <div class="modal-head">
+      <h2 id="rankTitle">랭킹</h2>
+      <button class="round close" type="button" data-close aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="st-ink" style="stroke-width:3.2" d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <p class="sub">가장 멀리 건넌 친구들이에요. 위에서부터 <b>50</b>등까지 보여요.</p>
+    <p class="rank-msg" id="rankMsg" role="status"></p>
+    <ol class="rank-list" id="rankList"></ol>
+    <p class="rank-me" id="rankMe" hidden></p>
   </div>
 </div>
 
@@ -1093,6 +1135,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     const configured = !!(sdk && cfg && cfg.apiKey && !/^YOUR_/.test(cfg.apiKey));
     const api = { configured, sdkLoaded: !!sdk, uid: null, nickname: '', status: 'idle', onStatus: null };
     let auth = null, db = null, timer = 0, dirty = false, saving = false;
+    let rankSent = '';   // what the ranking board last got from us, so it is only written when it changes
     if (configured) {
       sdk.initializeApp(cfg);
       auth = sdk.auth();
@@ -1119,11 +1162,13 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       const cred = await auth.signInWithEmailAndPassword(emailOf(nick), passOf(pin));
       api.uid = cred.user.uid;
       api.nickname = nick;
+      rankSent = '';
     };
     api.signUp = async (nick, pin) => {
       const cred = await auth.createUserWithEmailAndPassword(emailOf(nick), passOf(pin));
       api.uid = cred.user.uid;
       api.nickname = nick;
+      rankSent = '';
       await db.collection('players').doc(api.uid).set({ nickname: nick, save: clean(freshSave()), updatedAt: stamp() });
     };
     api.load = async () => {
@@ -1143,8 +1188,26 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       if (!api.uid || !dirty || saving) return;
       dirty = false;
       saving = true;
+      const data = clean(save);
+      const rankKey = data.best > 0 ? api.nickname + '|' + data.best + '|' + data.selected : '';
       try {
-        await db.collection('players').doc(api.uid).set({ nickname: api.nickname, save: clean(save), updatedAt: stamp() });
+        const me = db.collection('players').doc(api.uid);
+        if (rankKey && rankKey !== rankSent) {
+          // The ranking entry must match the saved record, so both go up together.
+          const batch = db.batch();
+          batch.set(me, { nickname: api.nickname, save: data, updatedAt: stamp() });
+          batch.set(db.collection('ranks').doc(api.uid), { nickname: api.nickname, best: data.best, selected: data.selected, updatedAt: stamp() });
+          try {
+            await batch.commit();
+          } catch (e) {
+            // Ranking rules missing or refusing: never let that block saving the record itself.
+            if (!e || e.code !== 'permission-denied') throw e;
+            await me.set({ nickname: api.nickname, save: data, updatedAt: stamp() });
+          }
+          rankSent = rankKey;
+        } else {
+          await me.set({ nickname: api.nickname, save: data, updatedAt: stamp() });
+        }
         setStatus(dirty ? 'pending' : 'saved');
       } catch (e) {
         dirty = true;
@@ -1158,9 +1221,15 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
       try { await api.flush(); } catch (e) { /* keep signing out */ }
       clearTimeout(timer);
       dirty = false;
+      rankSent = '';
       api.uid = null;
       api.nickname = '';
       if (auth) await auth.signOut();
+    };
+    // Top players by best score, for the ranking board.
+    api.loadRanks = async (n) => {
+      const snap = await db.collection('ranks').orderBy('best', 'desc').limit(n).get();
+      return snap.docs.map((d) => Object.assign({ uid: d.id }, d.data()));
     };
     api.message = (err) => {
       const c = (err && err.code) || '';
@@ -3357,7 +3426,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     const fromCloud = doc && doc.save ? normalizeSave(doc.save) : null;
     const fromDevice = readLocal() ? normalizeSave(readLocal()) : null;
     save = fromCloud && (!fromDevice || fromCloud.savedAt >= fromDevice.savedAt) ? fromCloud : (fromDevice || freshSave());
-    if (!fromCloud || save !== fromCloud) persist();
+    if (!fromCloud || save !== fromCloud || save.best > 0) persist();
     applySave();
     $('loginForm').classList.remove('loading');
     $('pinInput').value = '';
@@ -3415,7 +3484,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
   }
 
   /* ================= UI: wallet, gift, friends ================= */
-  function modalOpen() { return !$('friendsModal').hidden || !$('revealModal').hidden || !$('petsModal').hidden; }
+  function modalOpen() { return !$('friendsModal').hidden || !$('revealModal').hidden || !$('petsModal').hidden || !$('rankModal').hidden; }
   let pausedFocus = null;
   function openModal(id, focusSel) {
     pausedFocus = document.activeElement;
@@ -3643,6 +3712,64 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     updatePetBtn();
     updateFriendTag();
   }
+  /* ================= ranking board ================= */
+  const RANK_SIZE = 50;
+  let rankLoad = 0;
+  async function openRanks() {
+    const list = $('rankList'), msg = $('rankMsg'), me = $('rankMe');
+    list.textContent = '';
+    me.hidden = true;
+    openModal('rankModal', '.close');
+    if (!cloud.configured || !cloud.uid) { msg.textContent = '로그인해야 랭킹을 볼 수 있어요.'; return; }
+    msg.textContent = '랭킹을 불러오는 중…';
+    const ticket = ++rankLoad;
+    cloud.flush();   // send a fresh best score first, if there is one waiting
+    let rows;
+    try {
+      rows = await cloud.loadRanks(RANK_SIZE);
+    } catch (e) {
+      if (ticket === rankLoad) msg.textContent = '랭킹을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.';
+      return;
+    }
+    if (ticket !== rankLoad || $('rankModal').hidden) return;
+    // My newest best may not have reached the board yet: show it in its place right away.
+    const mine = rows.find((r) => r.uid === cloud.uid);
+    if (save.best > 0 && (!mine || mine.best < save.best)) {
+      if (mine) rows.splice(rows.indexOf(mine), 1);
+      rows.push({ uid: cloud.uid, nickname: cloud.nickname, best: save.best, selected: save.selected });
+      rows.sort((a, b) => b.best - a.best);
+      rows = rows.slice(0, RANK_SIZE);
+    }
+    rows = rows.filter((r) => r.best > 0);
+    msg.textContent = rows.length ? '' : '아직 기록이 없어요. 첫 번째 주인공이 되어 보세요!';
+    let place = 0, myPlace = 0;
+    rows.forEach((r, i) => {
+      if (i === 0 || r.best < rows[i - 1].best) place = i + 1;   // same score, same place
+      const isMe = r.uid === cloud.uid;
+      if (isMe) myPlace = place;
+      const li = document.createElement('li');
+      li.className = 'rank-row' + (isMe ? ' me' : '') + (place <= 3 ? ' top' + place : '');
+      const no = document.createElement('span');
+      no.className = 'rank-no';
+      no.textContent = place;
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = (FRIEND[r.selected] && thumbs[r.selected]) || thumbs.chick || '';
+      const name = document.createElement('span');
+      name.className = 'rank-name';
+      name.textContent = r.nickname;
+      if (isMe) { const tag = document.createElement('small'); tag.textContent = '(나)'; name.appendChild(tag); }
+      const sc = document.createElement('span');
+      sc.className = 'rank-score';
+      sc.innerHTML = Math.floor(r.best) + '<small>칸</small>';
+      li.append(no, img, name, sc);
+      list.appendChild(li);
+    });
+    me.hidden = false;
+    me.textContent = save.best <= 0 ? '한 칸이라도 건너면 랭킹에 이름이 올라가요.'
+      : myPlace ? '나는 ' + myPlace + '등이에요! 최고 기록 ' + save.best + '칸'
+      : '내 최고 기록은 ' + save.best + '칸이에요. ' + RANK_SIZE + '등 안에 들면 이름이 나와요.';
+  }
   function openPets() {
     renderPets();
     openModal('petsModal', '.close');
@@ -3803,6 +3930,11 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
     $('legendBtn').addEventListener('click', () => drawFriend('legend'));
     $('mythBtn').addEventListener('click', () => drawFriend('myth'));
     $('petsBtn').addEventListener('click', openPets);
+    $('rankBtn').addEventListener('click', openRanks);
+    $('overRankBtn').addEventListener('click', openRanks);
+    $('rankModal').addEventListener('click', (e) => {
+      if (e.target === $('rankModal') || e.target.closest('[data-close]')) closeModal('rankModal');
+    });
     $('overPetsBtn').addEventListener('click', openPets);
     $('petBtn').addEventListener('pointerdown', (e) => { e.preventDefault(); sfx.unlock(); usePet(); });
     $('petsModal').addEventListener('click', (e) => {
@@ -3843,6 +3975,7 @@ body.timestop #stage canvas { filter: grayscale(0.7) brightness(1.06); }
         if (e.key === 'Escape') {
           if (!$('friendsModal').hidden) closeModal('friendsModal');
           else if (!$('petsModal').hidden) closeModal('petsModal');
+          else if (!$('rankModal').hidden) closeModal('rankModal');
           else if ($('revealActions').children.length) closeModal('revealModal');
         }
         return;

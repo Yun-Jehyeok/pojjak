@@ -71,7 +71,9 @@ firebase deploy
 1. 프로젝트 설정 → **서비스 계정** → **새 비공개 키 생성** → 받은 파일을 `tools/service-account.json`으로 저장. (**이 파일은 절대 공유하지 마세요.**)
 2. `cd tools` → `npm install` → `node reset-pin.js 폴짝왕 5678`
 
-**계정 지우기** — Authentication → 사용자에서 계정을 지우고, Firestore의 `players`에서 같은 ID(UID)의 문서도 지워 주세요.
+**랭킹** — 홈 화면과 게임이 끝난 화면의 **랭킹** 버튼으로 최고 기록 상위 50명을 볼 수 있어요. 기록은 Firestore의 `ranks` 컬렉션에 닉네임·최고 기록·고른 친구만 저장돼요. 로그인한 아이들끼리는 서로의 닉네임과 점수가 보여요.
+
+**계정 지우기** — Authentication → 사용자에서 계정을 지우고, Firestore의 `players`와 `ranks`에서 같은 ID(UID)의 문서도 지워 주세요.
 
 ## 알아 둘 점
 - **기존 Claude 링크의 기록은 옮겨지지 않아요.** 주소가 달라서 브라우저가 따로 저장하고 있었어요.
